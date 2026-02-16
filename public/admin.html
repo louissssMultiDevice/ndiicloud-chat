@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - NdiiClouD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-title {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .admin-subtitle {
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1d1d1f;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .admin-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .btn-success {
+            background: #34c759;
+            color: white;
+        }
+
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.3s;
+        }
+
+        .user-item:hover {
+            background: #f9f9f9;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .user-phone {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+
+        .log-console {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-time {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .status-online {
+            color: #34c759;
+        }
+
+        .status-offline {
+            color: #ff3b30;
+        }
+
+        @media (max-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <div>
+                <div class="admin-title">👑 Admin Dashboard</div>
+                <div class="admin-subtitle">NdiiClouD Management System</div>
+            </div>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Online Now</div>
+                <div class="stat-value" id="onlineUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Bot Status</div>
+                <div class="stat-value" id="botStatus" style="font-size: 18px; color: #34c759;">🟢 Online</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Messages Today</div>
+                <div class="stat-value" id="msgToday">0</div>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="admin-panel">
+                <div class="panel-title">📨 Kirim Pesan</div>
+                
+                <div class="form-group">
+                    <label>Tipe Pesan</label>
+                    <select id="msgType" onchange="toggleMsgTarget()">
+                        <option value="single">Single User</option>
+                        <option value="broadcast">Broadcast All</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="targetGroup">
+                    <label>Nomor Tujuan</label>
+                    <input type="text" id="targetNumber" placeholder="6287717274346">
+                </div>
+
+                <div class="form-group">
+                    <label>Pesan</label>
+                    <textarea id="messageText" rows="4" placeholder="Tulis pesan..."></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="sendMessage()">
+                    🚀 Kirim Pesan
+                </button>
+            </div>
+
+            <div class="admin-panel">
+                <div class="panel-title">👥 User Management</div>
+                <div class="user-list" id="userList">
+                    <!-- Users loaded dynamically -->
+                </div>
+                <button class="btn btn-primary" onclick="loadUsers()" style="margin-top: 15px; width: 100%;">
+                    🔄 Refresh List
+                </button>
+            </div>
+
+            <div class="admin-panel">
+                <div class="panel-title">🤖 Bot Settings</div>
+                
+                <div class="form-group">
+                    <label>Admin Number (WhatsApp)</label>
+                    <input type="text" id="adminNumber" placeholder="6287717274346">
+                </div>
+
+                <div class="form-group">
+                    <label>Auto Reminder Interval (hari)</label>
+                    <input type="number" id="reminderInterval" value="3" min="1" max="30">
+                </div>
+
+                <div class="form-group">
+                    <label>Welcome Message</label>
+                    <textarea id="welcomeMsg" rows="3">Selamat datang di NdiiClouD! 🌩️</textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="saveSettings()">
+                    💾 Simpan Settings
+                </button>
+            </div>
+
+            <div class="admin-panel">
+                <div class="panel-title">📊 System Log</div>
+                <div class="log-console" id="systemLog">
+                    <div class="log-entry">
+                        <span class="log-time">[00:00:00]</span>
+                        System initialized...
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="clearLog()" style="margin-top: 10px;">
+                    🗑️ Clear Log
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = localStorage.getItem('ndiicloud_session');
+        
+        if (!sessionId) {
+            alert('Akses ditolak! Silakan login sebagai admin.');
+            window.location.href = '/';
+        }
+
+        // Load initial data
+        loadStats();
+        loadUsers();
+        loadSettings();
+
+        function addLog(message) {
+            const log = document.getElementById('systemLog');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats', {
+                    headers: { 'sessionId': sessionId }
+                });
+                const data = await response.json();
+                
+                document.getElementById('totalUsers').textContent = data.totalUsers || 0;
+                document.getElementById('onlineUsers').textContent = data.onlineUsers || 0;
+                document.getElementById('botStatus').innerHTML = data.botStatus === 'online' ? 
+                    '🟢 Online' : '🔴 Offline';
+                
+                addLog(`Stats updated: ${data.totalUsers} users, ${data.onlineUsers} online`);
+            } catch (err) {
+                addLog('Error loading stats: ' + err.message);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: { 'sessionId': sessionId }
+                });
+                const users = await response.json();
+                
+                const list = document.getElementById('userList');
+                list.innerHTML = '';
+                
+                Object.entries(users).forEach(([phone, user]) => {
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.innerHTML = `
+                        <div class="user-avatar">${user.name ? user.name[0] : 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.name || 'Unknown'}</div>
+                            <div class="user-phone">${phone}</div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="icon-btn" onclick="sendUserOTP('${phone}')" title="Send OTP">🔐</button>
+                            <button class="icon-btn" onclick="notifyUser('${phone}')" title="Send Notification">🔔</button>
+                            <button class="icon-btn" onclick="deleteUser('${phone}')" title="Delete">🗑️</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+                
+                addLog(`Loaded ${Object.keys(users).length} users`);
+            } catch (err) {
+                addLog('Error loading users: ' + err.message);
+            }
+        }
+
+        async function sendMessage() {
+            const type = document.getElementById('msgType').value;
+            const number = document.getElementById('targetNumber').value;
+            const text = document.getElementById('messageText').value;
+            
+            if (!text) {
+                alert('Pesan tidak boleh kosong!');
+                return;
+            }
+
+            try {
+                let response;
+                if (type === 'broadcast') {
+                    response = await fetch('/api/admin/broadcast', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'sessionId': sessionId 
+                        },
+                        body: JSON.stringify({ message: text })
+                    });
+                } else {
+                    if (!number) {
+                        alert('Nomor tujuan harus diisi!');
+                        return;
+                    }
+                    response = await fetch('/api/admin/send', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'sessionId': sessionId 
+                        },
+                        body: JSON.stringify({ phone: number, message: text })
+                    });
+                }
+                
+                const result = await response.json();
+                addLog(`Message sent: ${result.success ? 'Success' : 'Failed'}`);
+                alert(result.success ? 'Pesan terkirim!' : 'Gagal mengirim pesan');
+            } catch (err) {
+                addLog('Error sending message: ' + err.message);
+            }
+        }
+
+        async function sendUserOTP(phone) {
+            const code = Math.floor(100000 + Math.random() * 900000);
+            try {
+                const response = await fetch('/api/admin/send', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'sessionId': sessionId 
+                    },
+                    body: JSON.stringify({ 
+                        phone: phone, 
+                        message: `🔐 KODE OTP NdiiClouD\n\nKode: ${code}\n\nJangan bagikan kode ini!` 
+                    })
+                });
+                addLog(`OTP sent to ${phone}: ${code}`);
+                alert(`OTP ${code} dikirim ke ${phone}`);
+            } catch (err) {
+                addLog('Error sending OTP: ' + err.message);
+            }
+        }
+
+        async function notifyUser(phone) {
+            const message = prompt('Masukkan pesan notifikasi:');
+            if (message) {
+                try {
+                    await fetch('/api/admin/send', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'sessionId': sessionId 
+                        },
+                        body: JSON.stringify({ phone: phone, message: `🔔 NOTIFIKASI\n\n${message}` })
+                    });
+                    addLog(`Notification sent to ${phone}`);
+                    alert('Notifikasi terkirim!');
+                } catch (err) {
+                    addLog('Error sending notification: ' + err.message);
+                }
+            }
+        }
+
+        function toggleMsgTarget() {
+            const type = document.getElementById('msgType').value;
+            document.getElementById('targetGroup').style.display = type === 'single' ? 'block' : 'none';
+        }
+
+        async function saveSettings() {
+            const settings = {
+                adminNumber: document.getElementById('adminNumber').value,
+                reminderInterval: document.getElementById('reminderInterval').value,
+                welcomeMessage: document.getElementById('welcomeMsg').value
+            };
+            
+            try {
+                await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'sessionId': sessionId 
+                    },
+                    body: JSON.stringify(settings)
+                });
+                addLog('Settings saved');
+                alert('Settings berhasil disimpan!');
+            } catch (err) {
+                addLog('Error saving settings: ' + err.message);
+            }
+        }
+
+        async function loadSettings() {
+            // Load from server or use defaults
+            addLog('Settings loaded');
+        }
+
+        function clearLog() {
+            document.getElementById('systemLog').innerHTML = '';
+            addLog('Log cleared');
+        }
+
+        function logout() {
+            localStorage.removeItem('ndiicloud_session');
+            localStorage.removeItem('ndiicloud_user');
+            window.location.href = '/';
+        }
+
+        // Auto refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>
