@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NdiiClouD Chat</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        :root {
+            --primary: #007AFF;
+            --primary-dark: #0051D5;
+            --bg-light: #F2F2F7;
+            --bg-dark: #000000;
+            --surface-light: #FFFFFF;
+            --surface-dark: #1C1C1E;
+            --text-light: #000000;
+            --text-dark: #FFFFFF;
+            --gray-light: #8E8E93;
+            --gray-dark: #98989D;
+            --bubble-me: #007AFF;
+            --bubble-other: #E5E5EA;
+            --bubble-me-dark: #0A84FF;
+            --bubble-other-dark: #262628;
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --read: #007AFF;
+            --sent: #8E8E93;
+            --delivered: #8E8E93;
+        }
+
+        body {
+            background: var(--bg-light);
+            color: var(--text-light);
+            overflow: hidden;
+            height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background: var(--bg-dark);
+            color: var(--text-dark);
+            --surface: var(--surface-dark);
+            --bubble-me: var(--bubble-me-dark);
+            --bubble-other: var(--bubble-other-dark);
+            --gray: var(--gray-dark);
+        }
+
+        body:not(.dark-mode) {
+            --surface: var(--surface-light);
+            --bubble-me: var(--bubble-me);
+            --bubble-other: var(--bubble-other);
+            --gray: var(--gray-light);
+        }
+
+        /* Admin Badge */
+        .admin-badge {
+            background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(255, 75, 43, 0.4);
+        }
+
+        .admin-badge::before {
+            content: '👑';
+        }
+
+        /* Auth Screens */
+        .auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+            overflow-y: auto;
+        }
+
+        .auth-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .auth-container {
+            background: rgba(255,255,255,0.95);
+            padding: 40px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+            backdrop-filter: blur(20px);
+            margin: 20px;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo h1 {
+            font-size: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .auth-logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auth-tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        /* Admin Login Section */
+        .admin-login-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px dashed #e0e0e0;
+            text-align: center;
+        }
+
+        .admin-toggle {
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .admin-toggle:hover {
+            background: rgba(0,0,0,0.05);
+            color: var(--primary);
+        }
+
+        .admin-form {
+            display: none;
+            margin-top: 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .admin-form.active {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .secret-code-input {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 4px;
+            text-align: center;
+            font-size: 18px !important;
+            font-weight: bold;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 14px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,122,255,0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+        }
+
+        .btn-admin:hover {
+            box-shadow: 0 8px 20px rgba(255, 75, 43, 0.4);
+        }
+
+        .otp-section {
+            display: none;
+            text-align: center;
+        }
+
+        .otp-section.active {
+            display: block;
+        }
+
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 25px 0;
+        }
+
+        .otp-inputs input {
+            width: 50px;
+            height: 55px;
+            text-align: center;
+            font-size: 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .otp-inputs input:focus {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .resend-otp {
+            color: var(--primary);
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Main App Layout */
+        .app-container {
+            display: none;
+            height: 100vh;
+            background: var(--surface);
+        }
+
+        .app-container.active {
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 380px;
+            background: var(--surface);
+            border-right: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: var(--surface);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .user-profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--success);
+            border: 3px solid var(--surface);
+            border-radius: 50%;
+        }
+
+        .status-indicator.away {
+            background: var(--warning);
+        }
+
+        .status-indicator.busy {
+            background: var(--danger);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .icon-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+            color: var(--text-light);
+            position: relative;
+        }
+
+        body.dark-mode .icon-btn {
+            color: var(--text-dark);
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.08);
+            transform: scale(1.1);
+        }
+
+        .icon-btn .badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            border: none;
+            background: rgba(0,0,0,0.05);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .search-box input {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            background: var(--surface);
+            padding: 0 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 16px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--gray);
+            position: relative;
+            transition: all 0.3s;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            width: 60%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        /* Chat List */
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--surface);
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .chat-item:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .chat-item.active {
+            background: rgba(0,122,255,0.08);
+        }
+
+        .chat-item.unread::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 40%;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .chat-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .chat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .chat-avatar .status-dot {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: var(--success);
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .chat-name {
+            font-weight: 700;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-time {
+            font-size: 12px;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .chat-preview {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: var(--gray);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .unread-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 12px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+        }
+
+        .typing-indicator {
+            color: var(--primary);
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Main Chat Area */
+        .chat-area {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            background: var(--bg-light);
+            position: relative;
+        }
+
+        .chat-area.active {
+            display: flex;
+        }
+
+        body.dark-mode .chat-area {
+            background: var(--bg-dark);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .chat-header-info {
+            flex: 1;
+        }
+
+        .chat-header-name {
+            font-weight: 700;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-header-status {
+            font-size: 13px;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Messages Container */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.03"><rect fill="%23000" width="100" height="100"/></svg>');
+            background-size: cover;
+            position: relative;
+        }
+
+        .custom-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 16px;
+            animation: messageSlide 0.3s ease-out;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.own {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .message.own .message-bubble {
+            background: var(--bubble-me);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message:not(.own) .message-bubble {
+            background: var(--bubble-other);
+            color: var(--text-light);
+            border-bottom-left-radius: 4px;
+        }
+
+        body.dark-mode .message:not(.own) .message-bubble {
+            color: var(--text-dark);
+        }
+
+        .message-text {
+            font-size: 15.5px;
+            line-height: 1.4;
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 11px;
+            opacity: 0.8;
+            justify-content: flex-end;
+        }
+
+        .message-status {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            position: relative;
+            display: inline-flex;
+        }
+
+        .checkmark::before {
+            content: '✓';
+            position: absolute;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .checkmark.sent::before { color: rgba(255,255,255,0.7); }
+        .checkmark.delivered::before { 
+            content: '✓✓'; 
+            letter-spacing: -3px;
+            color: rgba(255,255,255,0.7);
+        }
+        .checkmark.read::before { 
+            content: '✓✓'; 
+            letter-spacing: -3px;
+            color: #60D6FA;
+        }
+        .checkmark.read-answered::before { 
+            content: '✓✓'; 
+            letter-spacing: -3px;
+            color: #34C759;
+        }
+
+        /* Voice Note */
+        .voice-note {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+        }
+
+        .voice-play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .voice-play-btn:hover {
+            background: rgba(255,255,255,0.4);
+            transform: scale(1.1);
+        }
+
+        .voice-wave {
+            flex: 1;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .wave-bar {
+            width: 3px;
+            background: currentColor;
+            border-radius: 2px;
+            opacity: 0.6;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px;
+            background: var(--surface);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            background: rgba(0,0,0,0.05);
+            border-radius: 24px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            max-height: 120px;
+        }
+
+        body.dark-mode .input-wrapper {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        body.dark-mode .message-input {
+            color: white;
+        }
+
+        .message-input:focus {
+            outline: none;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .attach-btn, .emoji-btn, .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            color: var(--gray);
+        }
+
+        .send-btn {
+            background: var(--primary);
+            color: white;
+            transform: scale(0);
+            transition: transform 0.3s;
+        }
+
+        .send-btn.visible {
+            transform: scale(1);
+        }
+
+        .attach-btn:hover, .emoji-btn:hover {
+            background: rgba(0,0,0,0.08);
+            color: var(--primary);
+        }
+
+        /* Emoji Picker */
+        .emoji-picker {
+            position: absolute;
+            bottom: 90px;
+            left: 20px;
+            right: 20px;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+            padding: 20px;
+            display: none;
+            max-height: 320px;
+            overflow-y: auto;
+            z-index: 100;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+
+        .emoji-picker.active {
+            display: block;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 8px;
+        }
+
+        .emoji-item {
+            font-size: 26px;
+            cursor: pointer;
+            text-align: center;
+            padding: 8px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .emoji-item:hover {
+            background: rgba(0,0,0,0.08);
+            transform: scale(1.2);
+        }
+
+        /* Sticker Panel */
+        .sticker-panel {
+            position: absolute;
+            bottom: 90px;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            height: 320px;
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sticker-panel.active {
+            display: flex;
+        }
+
+        .sticker-tabs {
+            display: flex;
+            padding: 12px;
+            gap: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+
+        .sticker-tab {
+            padding: 8px 18px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.05);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .sticker-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sticker-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .sticker-item {
+            aspect-ratio: 1;
+            background: rgba(0,0,0,0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sticker-item:hover {
+            transform: scale(1.1);
+            background: rgba(0,0,0,0.1);
+        }
+
+        /* Link Preview */
+        .link-preview {
+            background: rgba(0,0,0,0.08);
+            border-radius: 12px;
+            margin-top: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .link-preview:hover {
+            background: rgba(0,0,0,0.12);
+        }
+
+        .link-preview-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: #ddd;
+        }
+
+        .link-preview-content {
+            padding: 12px;
+        }
+
+        .link-preview-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .link-preview-desc {
+            font-size: 12px;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .link-preview-url {
+            font-size: 12px;
+            margin-top: 6px;
+            opacity: 0.7;
+        }
+
+        /* Status Viewer */
+        .status-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 9999;
+            display: none;
+        }
+
+        .status-viewer.active {
+            display: block;
+        }
+
+        .status-progress {
+            position: absolute;
+            top: 30px;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .status-progress-bar {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .status-close {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            z-index: 10;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .status-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .status-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Call Overlay */
+        .call-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            z-index: 10001;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .call-overlay.active {
+            display: flex;
+        }
+
+        .call-avatar {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 70px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 60px rgba(102, 126, 234, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .call-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .call-status {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 60px;
+        }
+
+        .call-timer {
+            font-size: 14px;
+            opacity: 0.6;
+            margin-top: 10px;
+        }
+
+        .call-actions {
+            display: flex;
+            gap: 40px;
+        }
+
+        .call-btn {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .call-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .call-btn.end {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .call-btn.accept {
+            background: #34c759;
+            color: white;
+        }
+
+        .call-btn.mute {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalSlide 0.3s ease-out;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+        }
+
+        @keyframes modalSlide {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 10;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(0,0,0,0.08);
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .setting-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(0,122,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .setting-info h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .setting-info p {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .toggle {
+            width: 52px;
+            height: 32px;
+            background: #ccc;
+            border-radius: 16px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle.active {
+            background: var(--success);
+        }
+
+        .toggle-circle {
+            width: 28px;
+            height: 28px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .toggle.active .toggle-circle {
+            transform: translateX(20px);
+        }
+
+        /* Profile Section */
+        .profile-section {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .profile-avatar-large {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 50px;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .profile-avatar-large img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .edit-avatar {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            border: 4px solid var(--surface);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .edit-avatar:hover {
+            transform: scale(1.1);
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .profile-bio {
+            color: var(--gray);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* AI Button */
+        .ai-button {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            z-index: 100;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .ai-button:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        /* Notification Settings */
+        .notification-settings {
+            margin-top: 20px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .notification-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notification-icon {
+            font-size: 24px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10002;
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Credit Footer */
+        .credit-footer {
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 13px;
+            color: var(--gray);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            margin-top: 30px;
+            line-height: 1.8;
+        }
+
+        .credit-footer .brand {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .credit-footer .tagline {
+            font-style: italic;
+            margin-top: 8px;
+            opacity: 0.9;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .chat-area {
+                width: 100%;
+            }
+
+            .back-btn {
+                display: flex !important;
+            }
+
+            .auth-container {
+                padding: 30px 20px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .back-btn {
+                display: none !important;
+            }
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0,122,255,0.2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* Typing Animation */
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--gray);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* File Input Hidden */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Admin Panel Link */
+        .admin-panel-link {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 9999;
+            display: none;
+        }
+
+        .admin-panel-link.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Menghubungkan ke NdiiClouD...</p>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Auth Screen -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <h1>🌩️ NdiiClouD</h1>
+                <p>Era Digital, Jaman Teknologi</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('phone')">📱 Telepon</button>
+                <button class="auth-tab" onclick="switchAuthTab('email')">📧 Email</button>
+            </div>
+
+            <!-- Phone Auth -->
+            <form class="auth-form active" id="phoneForm" onsubmit="event.preventDefault(); sendOTP('phone');">
+                <div class="input-group">
+                    <label>Nomor Telepon</label>
+                    <input type="tel" id="phoneInput" placeholder="+62 812-3456-7890" required>
+                </div>
+                <button type="submit" class="btn-primary" id="sendOtpBtn">
+                    <span>🚀</span> Kirim OTP
+                </button>
+            </form>
+
+            <!-- Email Auth -->
+            <form class="auth-form" id="emailForm" onsubmit="event.preventDefault(); sendOTP('email');">
+                <div class="input-group">
+                    <label>Email Gmail</label>
+                    <input type="email" id="emailInput" placeholder="nama@gmail.com" required>
+                </div>
+                <button type="submit" class="btn-primary" id="sendEmailOtpBtn">
+                    <span>✉️</span> Kirim OTP
+                </button>
+            </form>
+
+            <!-- OTP Section -->
+            <div class="otp-section" id="otpSection">
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    Masukkan kode OTP yang dikirim ke<br>
+                    <strong id="otpTarget" style="color: #333;"></strong>
+                </p>
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="moveOTP(this, 0)" onfocus="this.select()">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="moveOTP(this, 1)" onfocus="this.select()">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="moveOTP(this, 2)" onfocus="this.select()">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="moveOTP(this, 3)" onfocus="this.select()">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="moveOTP(this, 4)" onfocus="this.select()">
+                    <input type="text" maxlength="1" class="otp-input" onkeyup="verifyOTP()" onfocus="this.select()">
+                </div>
+                <button class="btn-primary" onclick="verifyOTP()">
+                    <span>🔐</span> Verifikasi
+                </button>
+                <p style="margin-top: 20px; font-size: 13px;">
+                    Tidak menerima kode? 
+                    <a href="#" onclick="resendOTP()" class="resend-otp">Kirim Ulang</a>
+                </p>
+            </div>
+
+            <!-- Admin Login Section -->
+            <div class="admin-login-section">
+                <div class="admin-toggle" onclick="toggleAdminLogin()">
+                    <span>👑</span>
+                    <span>Login sebagai Admin</span>
+                    <span id="adminArrow">▼</span>
+                </div>
+                
+                <div class="admin-form" id="adminForm">
+                    <div class="input-group">
+                        <label>Kode Rahasia Admin</label>
+                        <input type="password" id="adminCode" class="secret-code-input" placeholder="•••••••••••••" maxlength="14">
+                    </div>
+                    <button class="btn-primary btn-admin" onclick="loginAdmin()">
+                        <span>👑</span> Login Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <!-- Sidebar -->
+        <div class="sidebar active" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile-header">
+                    <div class="avatar" onclick="openProfile()">
+                        <span id="userAvatar">U</span>
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700;" id="userName">User</div>
+                        <div style="font-size: 12px; color: var(--gray);" id="userStatus">Online</div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="icon-btn" onclick="openStatus()" title="Status">📷</button>
+                        <button class="icon-btn" onclick="openCalls()" title="Panggilan">📞</button>
+                        <button class="icon-btn" onclick="openSettings()" title="Pengaturan">⚙️</button>
+                    </div>
+                </div>
+                <div class="search-box">
+                    <input type="text" placeholder="🔍 Cari chat..." id="searchInput" onkeyup="searchChats()">
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('chats')">Chat</div>
+                <div class="tab" onclick="switchTab('status')">Status</div>
+                <div class="tab" onclick="switchTab('channels')">Saluran</div>
+                <div class="tab" onclick="switchTab('community')">Komunitas</div>
+            </div>
+
+            <div class="chat-list" id="chatList">
+                <!-- NdiiClouD Community -->
+                <div class="chat-item" onclick="openChat('ndiicloud', 'NdiiClouD Community', true)">
+                    <div class="chat-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        🌩️
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-header-row">
+                            <span class="chat-name">NdiiClouD Community</span>
+                            <span class="chat-time">Now</span>
+                        </div>
+                        <div class="chat-preview">
+                            <span>Selamat datang di era digital! 🚀</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ad Channel -->
+                <div class="chat-item" onclick="openAdChannel()">
+                    <div class="chat-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        📢
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-header-row">
+                            <span class="chat-name">Saluran Iklan</span>
+                            <span class="chat-time">Ads</span>
+                        </div>
+                        <div class="chat-preview">
+                            <span>Promosikan bisnismu - Mulai dari 2K</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Users -->
+                <div class="chat-item unread" onclick="openChat('user1', 'Ahmad Rizki')">
+                    <div class="chat-avatar">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmad" alt="Ahmad">
+                        <div class="status-dot"></div>
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-header-row">
+                            <span class="chat-name">Ahmad Rizki</span>
+                            <span class="chat-time">10:30</span>
+                        </div>
+                        <div class="chat-preview">
+                            <span class="checkmark read"></span>
+                            <span>Siip, nanti saya kirim filenya</span>
+                            <span class="unread-badge">2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-item" onclick="openChat('user2', 'Siti Aminah')">
+                    <div class="chat-avatar">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" alt="Siti">
+                        <div class="status-dot"></div>
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-header-row">
+                            <span class="chat-name">Siti Aminah</span>
+                            <span class="chat-time">10:15</span>
+                        </div>
+                        <div class="chat-preview typing-indicator">
+                            <span>sedang mengetik</span>
+                            <div class="typing-dots" style="display: inline-flex; padding: 0;">
+                                <div class="typing-dot" style="width: 4px; height: 4px;"></div>
+                                <div class="typing-dot" style="width: 4px; height: 4px;"></div>
+                                <div class="typing-dot" style="width: 4px; height: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-header">
+                <button class="icon-btn back-btn" onclick="closeChat()" style="display: flex;">←</button>
+                <div class="avatar" id="chatAvatar">
+                    <span>C</span>
+                </div>
+                <div class="chat-header-info">
+                    <div class="chat-header-name" id="chatName">
+                        Pilih Chat
+                        <span class="admin-badge" id="adminBadge" style="display: none;">Admin</span>
+                    </div>
+                    <div class="chat-header-status" id="chatStatus">Klik chat untuk memulai</div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="icon-btn" onclick="startCall('voice')" title="Panggilan Suara">📞</button>
+                    <button class="icon-btn" onclick="startCall('video')" title="Panggilan Video">📹</button>
+                    <button class="icon-btn" onclick="openChatMenu()" title="Menu">⋮</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <img src="" class="custom-bg" id="customBg" style="display: none;">
+                
+                <div class="message own">
+                    <div class="message-bubble">
+                        <div class="message-text">Halo! Selamat datang di NdiiClouD Chat 👋</div>
+                        <div class="message-meta">
+                            <span>10:00</span>
+                            <span class="message-status">
+                                <span class="checkmark read-answered"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emoji Picker -->
+            <div class="emoji-picker" id="emojiPicker">
+                <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
+
+            <!-- Sticker Panel -->
+            <div class="sticker-panel" id="stickerPanel">
+                <div class="sticker-tabs">
+                    <div class="sticker-tab active" onclick="switchStickerTab('default')">😊 Default</div>
+                    <div class="sticker-tab" onclick="switchStickerTab('custom')">⭐ Custom</div>
+                    <div class="sticker-tab" onclick="createSticker()">➕ Buat</div>
+                </div>
+                <div class="sticker-grid" id="stickerGrid"></div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <button class="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
+                <button class="attach-btn" onclick="toggleStickerPanel()">🎨</button>
+                <div class="input-wrapper">
+                    <textarea class="message-input" id="messageInput" placeholder="Ketik pesan..." rows="1" oninput="handleInput()" onkeypress="handleKeyPress(event)"></textarea>
+                </div>
+                <button class="attach-btn" onclick="attachFile()">📎</button>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+            </div>
+            <input type="file" id="fileInput" onchange="handleFileSelect(event)" multiple>
+        </div>
+    </div>
+
+    <!-- AI Button -->
+    <button class="ai-button" onclick="openAIChat()" title="NdiiClouD AI">🤖</button>
+
+    <!-- Admin Panel Link (Visible only for admin) -->
+    <div class="admin-panel-link" id="adminPanelLink" onclick="openAdminDashboard()">
+        👑 Admin Dashboard
+    </div>
+
+    <!-- Status Viewer -->
+    <div class="status-viewer" id="statusViewer">
+        <div class="status-progress">
+            <div class="status-progress-bar" id="statusProgress"></div>
+        </div>
+        <div class="status-close" onclick="closeStatus()">✕</div>
+        <div class="status-content">
+            <img src="" class="status-image" id="statusImage">
+        </div>
+    </div>
+
+    <!-- Call Overlay -->
+    <div class="call-overlay" id="callOverlay">
+        <div class="call-avatar" id="callAvatar">👤</div>
+        <div class="call-name" id="callName">Nama Kontak</div>
+        <div class="call-status" id="callStatus">Menelepon...</div>
+        <div class="call-timer" id="callTimer"></div>
+        <div class="call-actions">
+            <button class="call-btn mute" onclick="toggleMute()" id="muteBtn">🎤</button>
+            <button class="call-btn end" onclick="endCall()">📞</button>
+            <button class="call-btn accept" id="acceptCallBtn" onclick="acceptCall()" style="display: none;">📞</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">⚙️ Pengaturan</span>
+                <span class="modal-close" onclick="closeSettings()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">🌙</div>
+                        <div class="setting-info">
+                            <h4>Mode Gelap</h4>
+                            <p>Ubah tampilan tema</p>
+                        </div>
+                    </div>
+                    <div class="toggle" id="darkModeToggle" onclick="toggleDarkMode()">
+                        <div class="toggle-circle"></div>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">🔔</div>
+                        <div class="setting-info">
+                            <h4>Notifikasi</h4>
+                            <p>Atur notifikasi aplikasi</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openNotificationSettings()">Atur</button>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">🖼️</div>
+                        <div class="setting-info">
+                            <h4>Background Chat</h4>
+                            <p>Personal</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="changeBackground()">Ubah</button>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">👤</div>
+                        <div class="setting-info">
+                            <h4>Edit Profil</h4>
+                            <p>Nama, foto, bio</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openProfile()">Edit</button>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">🔒</div>
+                        <div class="setting-info">
+                            <h4>Privasi</h4>
+                            <p>Keamanan akun</p>
+                        </div>
+                    </div>
+                    <span style="color: var(--gray);">›</span>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">💾</div>
+                        <div class="setting-info">
+                            <h4>Penyimpanan</h4>
+                            <p>Manajemen data</p>
+                        </div>
+                    </div>
+                    <span style="color: var(--gray);">›</span>
+                </div>
+
+                <div class="setting-item" onclick="logout()">
+                    <div class="setting-label">
+                        <div class="setting-icon" style="background: rgba(255,59,48,0.1);">🚪</div>
+                        <div class="setting-info">
+                            <h4 style="color: #ff3b30;">Keluar</h4>
+                            <p>Logout dari akun</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="credit-footer">
+                    <div class="brand">🌩️ NdiiClouD | 2024-2026</div>
+                    <div>Era Digital, Jaman Teknologi</div>
+                    <div class="tagline">"Kuat Mental Tanpa Bergerigi"</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Settings Modal -->
+    <div class="modal" id="notificationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">🔔 Pengaturan Notifikasi</span>
+                <span class="modal-close" onclick="closeNotificationSettings()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="notification-settings">
+                    <div class="notification-item">
+                        <div class="notification-label">
+                            <span class="notification-icon">💬</span>
+                            <div>
+                                <div style="font-weight: 600;">Notifikasi Chat</div>
+                                <div style="font-size: 13px; color: var(--gray);">Pesan masuk</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')">
+                            <div class="toggle-circle"></div>
+                        </div>
+                    </div>
+
+                    <div class="notification-item">
+                        <div class="notification-label">
+                            <span class="notification-icon">📞</span>
+                            <div>
+                                <div style="font-weight: 600;">Panggilan</div>
+                                <div style="font-size: 13px; color: var(--gray);">Panggilan masuk</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')">
+                            <div class="toggle-circle"></div>
+                        </div>
+                    </div>
+
+                    <div class="notification-item">
+                        <div class="notification-label">
+                            <span class="notification-icon">🔊</span>
+                            <div>
+                                <div style="font-weight: 600;">Suara</div>
+                                <div style="font-size: 13px; color: var(--gray);">Nada dering</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')">
+                            <div class="toggle-circle"></div>
+                        </div>
+                    </div>
+
+                    <div class="notification-item">
+                        <div class="notification-label">
+                            <span class="notification-icon">📳</span>
+                            <div>
+                                <div style="font-weight: 600;">Getar</div>
+                                <div style="font-size: 13px; color: var(--gray);">Saat pesan masuk</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')">
+                            <div class="toggle-circle"></div>
+                        </div>
+                    </div>
+
+                    <div class="notification-item">
+                        <div class="notification-label">
+                            <span class="notification-icon">👁️</span>
+                            <div>
+                                <div style="font-weight: 600;">Preview Pesan</div>
+                                <div style="font-size: 13px; color: var(--gray);">Tampilkan di notifikasi</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')">
+                            <div class="toggle-circle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveNotificationSettings()" style="margin-top: 20px;">
+                    Simpan Pengaturan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">👤 Profil Saya</span>
+                <span class="modal-close" onclick="closeProfile()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="profile-section">
+                    <div class="profile-avatar-large" onclick="changeAvatar()">
+                        <span id="profileAvatarText">U</span>
+                        <img src="" id="profileAvatarImg" style="display: none;">
+                        <div class="edit-avatar">📷</div>
+                    </div>
+                    <input type="text" id="profileNameInput" value="User Name" style="width: 100%; text-align: center; font-size: 20px; border: none; border-bottom: 2px solid #e0e0e0; padding: 10px; margin-bottom: 10px; background: transparent;">
+                    <input type="text" id="profileBioInput" value="Halo, saya menggunakan NdiiClouD!" style="width: 100%; text-align: center; color: var(--gray); border: none; padding: 10px; background: transparent;">
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">📱</div>
+                        <div class="setting-info">
+                            <h4>Nomor Telepon</h4>
+                            <p id="profilePhone">+62 812-3456-7890</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <div class="setting-icon">✉️</div>
+                        <div class="setting-info">
+                            <h4>Email</h4>
+                            <p id="profileEmail">user@gmail.com</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="saveProfile()" style="margin-top: 20px;">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let socket;
+        let currentUser = null;
+        let currentChat = null;
+        let isAdmin = false;
+        let isDarkMode = false;
+        let typingTimer;
+        let callTimer;
+        let callStartTime;
+        let notificationSettings = {
+            chat: true,
+            call: true,
+            sound: true,
+            vibration: true,
+            preview: true
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            initEmojis();
+            initStickers();
+            checkTheme();
+            checkSession();
+        });
+
+        // Socket.io Connection
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Connected to server');
+            });
+
+            socket.on('new_message', (data) => {
+                if (currentChat && data.chatId === currentChat.id) {
+                    receiveMessage(data);
+                } else {
+                    showNotification(data);
+                }
+            });
+
+            socket.on('typing', (data) => {
+                if (currentChat && data.userId === currentChat.id) {
+                    showTypingIndicator(data.isTyping);
+                }
+            });
+
+            socket.on('incoming_call', (data) => {
+                showIncomingCall(data);
+            });
+
+            socket.on('call_answered', (data) => {
+                if (data.accepted) {
+                    startCallTimer();
+                } else {
+                    endCall();
+                    showToast('Panggilan ditolak');
+                }
+            });
+
+            socket.on('user_online', (data) => {
+                updateUserStatus(data.userId, true);
+            });
+
+            socket.on('user_offline', (data) => {
+                updateUserStatus(data.userId, false, data.lastSeen);
+            });
+        }
+
+        // Auth Functions
+        function switchAuthTab(type) {
+            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(type + 'Form').classList.add('active');
+            document.getElementById('otpSection').classList.remove('active');
+        }
+
+        function toggleAdminLogin() {
+            const form = document.getElementById('adminForm');
+            const arrow = document.getElementById('adminArrow');
+            form.classList.toggle('active');
+            arrow.textContent = form.classList.contains('active') ? '▲' : '▼';
+        }
+
+        async function sendOTP(type) {
+            const input = type === 'phone' ? document.getElementById('phoneInput') : document.getElementById('emailInput');
+            const value = input.value.trim();
+            
+            if (!value) {
+                showToast('Mohon isi ' + (type === 'phone' ? 'nomor telepon' : 'email'));
+                return;
+            }
+
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            try {
+                const response = await fetch('/api/auth/otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [type]: value, type })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('otpTarget').textContent = value;
+                    document.querySelector('.auth-form.active').style.display = 'none';
+                    document.getElementById('otpSection').classList.add('active');
+                    showToast('OTP dikirim! Periksa WhatsApp/Email');
+                } else {
+                    showToast(data.error || 'Gagal mengirim OTP');
+                }
+            } catch (err) {
+                showToast('Error koneksi server');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+
+        function moveOTP(input, index) {
+            if (input.value && index < 5) {
+                document.querySelectorAll('.otp-inputs input')[index + 1].focus();
+            }
+        }
+
+        async function verifyOTP() {
+            const inputs = document.querySelectorAll('.otp-inputs input');
+            let code = '';
+            inputs.forEach(input => code += input.value);
+            
+            if (code.length !== 6) {
+                showToast('Masukkan kode OTP lengkap');
+                return;
+            }
+
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        phone: document.getElementById('phoneInput').value,
+                        email: document.getElementById('emailInput').value,
+                        code 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    isAdmin = data.isAdmin || false;
+                    localStorage.setItem('ndiicloud_session', data.sessionId);
+                    localStorage.setItem('ndiicloud_user', JSON.stringify(currentUser));
+                    
+                    if (isAdmin) {
+                        document.getElementById('adminPanelLink').classList.add('active');
+                        document.getElementById('adminBadge').style.display = 'inline-flex';
+                    }
+                    
+                    showApp();
+                    showToast(isAdmin ? '👑 Login Admin berhasil!' : '✅ Login berhasil!');
+                } else {
+                    showToast(data.error || 'Kode OTP salah');
+                }
+            } catch (err) {
+                showToast('Error verifikasi');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+
+        async function loginAdmin() {
+            const code = document.getElementById('adminCode').value.trim();
+            
+            if (code !== '#6287717274346') {
+                showToast('❌ Kode admin salah!');
+                return;
+            }
+
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminCode: code })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.isAdmin) {
+                    currentUser = data.user;
+                    isAdmin = true;
+                    localStorage.setItem('ndiicloud_session', data.sessionId);
+                    localStorage.setItem('ndiicloud_user', JSON.stringify(currentUser));
+                    
+                    document.getElementById('adminPanelLink').classList.add('active');
+                    document.getElementById('adminBadge').style.display = 'inline-flex';
+                    
+                    showApp();
+                    showToast('👑 Welcome Admin NdiiClouD!');
+                }
+            } catch (err) {
+                showToast('Error login admin');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        }
+
+        function resendOTP() {
+            const activeForm = document.querySelector('.auth-form.active');
+            const type = activeForm.id === 'phoneForm' ? 'phone' : 'email';
+            sendOTP(type);
+        }
+
+        function showApp() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('appContainer').classList.add('active');
+            
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userAvatar').textContent = currentUser.name[0];
+                
+                // Authenticate socket
+                socket.emit('authenticate', localStorage.getItem('ndiicloud_session'));
+            }
+        }
+
+        function checkSession() {
+            const sessionId = localStorage.getItem('ndiicloud_session');
+            const userData = localStorage.getItem('ndiicloud_user');
+            
+            if (sessionId && userData) {
+                currentUser = JSON.parse(userData);
+                isAdmin = currentUser.role === 'admin';
+                
+                if (isAdmin) {
+                    document.getElementById('adminPanelLink').classList.add('active');
+                    document.getElementById('adminBadge').style.display = 'inline-flex';
+                }
+                
+                showApp();
+            }
+        }
+
+        // Chat Functions
+        function openChat(userId, userName, isCommunity = false) {
+            currentChat = { id: userId, name: userName, isCommunity };
+            document.getElementById('chatName').textContent = userName;
+            document.getElementById('chatAvatar').innerHTML = `<span>${userName[0]}</span>`;
+            document.getElementById('chatStatus').textContent = isCommunity ? 'Komunitas NdiiClouD' : 'Online';
+            
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('active');
+                document.getElementById('chatArea').classList.add('active');
+            } else {
+                document.getElementById('chatArea').classList.add('active');
+            }
+
+            socket.emit('join_chat', userId);
+            loadMessages(userId);
+        }
+
+        function closeChat() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.add('active');
+                document.getElementById('chatArea').classList.remove('active');
+            }
+            currentChat = null;
+        }
+
+        function loadMessages(chatId) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '<img src="" class="custom-bg" id="customBg" style="display: none;">';
+            
+            // Load from server or local storage
+            // For demo, add welcome message
+            if (chatId === 'ndiicloud') {
+                addMessage('own', 'Halo! Saya admin NdiiClouD. Ada yang bisa dibantu? 👋', '10:00', 'read-answered');
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentChat) return;
+
+            const messageData = {
+                chatId: currentChat.id,
+                message: text,
+                type: 'text',
+                timestamp: Date.now()
+            };
+
+            socket.emit('send_message', messageData);
+            
+            addMessage('own', text, formatTime(new Date()), 'sent');
+            
+            input.value = '';
+            input.style.height = 'auto';
+            document.getElementById('sendBtn').classList.remove('visible');
+            
+            // Simulate reply
+            if (!currentChat.isCommunity) {
+                setTimeout(() => {
+                    simulateTyping();
+                    setTimeout(() => {
+                        addMessage('other', 'Pesan diterima! 👍', formatTime(new Date()));
+                    }, 2000);
+                }, 1000);
+            }
+        }
+
+        function addMessage(type, text, time, status = '') {
+            const container = document.getElementById('messagesContainer');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            
+            let statusHtml = '';
+            if (type === 'own' && status) {
+                statusHtml = `<span class="message-status"><span class="checkmark ${status}"></span></span>`;
+            }
+            
+            div.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                    <div class="message-meta">
+                        <span>${time}</span>
+                        ${statusHtml}
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            
+            // Update status after delay
+            if (type === 'own' && status === 'sent') {
+                setTimeout(() => updateMessageStatus(div, 'delivered'), 1000);
+                setTimeout(() => updateMessageStatus(div, 'read'), 3000);
+            }
+        }
+
+        function updateMessageStatus(element, status) {
+            const statusEl = element.querySelector('.checkmark');
+            if (statusEl) {
+                statusEl.className = `checkmark ${status}`;
+            }
+        }
+
+        function receiveMessage(data) {
+            addMessage('other', data.content, formatTime(new Date(data.timestamp)));
+            
+            if (notificationSettings.chat) {
+                showBrowserNotification(data.senderName, data.content);
+            }
+        }
+
+        function simulateTyping() {
+            const container = document.getElementById('messagesContainer');
+            const div = document.createElement('div');
+            div.className = 'message typing-indicator-msg';
+            div.innerHTML = `
+                <div class="message-bubble" style="padding: 18px 24px;">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        // Call Functions
+        function startCall(type) {
+            if (!currentChat) return;
+            
+            document.getElementById('callOverlay').classList.add('active');
+            document.getElementById('callName').textContent = currentChat.name;
+            document.getElementById('callStatus').textContent = type === 'video' ? 'Panggilan video...' : 'Menelepon...';
+            document.getElementById('acceptCallBtn').style.display = 'none';
+            
+            socket.emit('call_request', { targetId: currentChat.id, type });
+            
+            // Simulate call connected after 3 seconds
+            setTimeout(() => {
+                if (document.getElementById('callOverlay').classList.contains('active')) {
+                    document.getElementById('callStatus').textContent = 'Terhubung';
+                    startCallTimer();
+                }
+            }, 3000);
+        }
+
+        function showIncomingCall(data) {
+            document.getElementById('callOverlay').classList.add('active');
+            document.getElementById('callName').textContent = 'Panggilan Masuk';
+            document.getElementById('callStatus').textContent = 'Menerima panggilan...';
+            document.getElementById('acceptCallBtn').style.display = 'flex';
+            
+            if (notificationSettings.call) {
+                playNotificationSound();
+            }
+        }
+
+        function acceptCall() {
+            document.getElementById('callStatus').textContent = 'Terhubung';
+            document.getElementById('acceptCallBtn').style.display = 'none';
+            startCallTimer();
+            socket.emit('call_response', { callerId: currentChat.id, accepted: true });
+        }
+
+        function endCall() {
+            document.getElementById('callOverlay').classList.remove('active');
+            stopCallTimer();
+        }
+
+        function startCallTimer() {
+            callStartTime = Date.now();
+            const timerEl = document.getElementById('callTimer');
+            timerEl.style.display = 'block';
+            
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const secs = (elapsed % 60).toString().padStart(2, '0');
+                timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            clearInterval(callTimer);
+            document.getElementById('callTimer').textContent = '';
+            document.getElementById('callTimer').style.display = 'none';
+        }
+
+        function toggleMute() {
+            const btn = document.getElementById('muteBtn');
+            btn.textContent = btn.textContent === '🎤' ? '🚫' : '🎤';
+        }
+
+        // Emoji & Sticker
+        function initEmojis() {
+            const emojis = ['😀','😃','😄','😁','😅','😂','🤣','😊','😇','🙂','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
+            const grid = document.getElementById('emojiGrid');
+            emojis.forEach(emoji => {
+                const span = document.createElement('span');
+                span.className = 'emoji-item';
+                span.textContent = emoji;
+                span.onclick = () => insertEmoji(emoji);
+                grid.appendChild(span);
+            });
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            input.value += emoji;
+            input.focus();
+            handleInput();
+        }
+
+        function toggleEmojiPicker() {
+            document.getElementById('emojiPicker').classList.toggle('active');
+            document.getElementById('stickerPanel').classList.remove('active');
+        }
+
+        function initStickers() {
+            const stickers = ['👍','❤️','😂','😮','😢','🙏','🔥','👏','🎉','💯','⚡','🏆','💪','🤔','😍','🎵','📸','🎮','🚀','💡'];
+            const grid = document.getElementById('stickerGrid');
+            stickers.forEach(sticker => {
+                const div = document.createElement('div');
+                div.className = 'sticker-item';
+                div.textContent = sticker;
+                div.onclick = () => sendSticker(sticker);
+                grid.appendChild(div);
+            });
+        }
+
+        function toggleStickerPanel() {
+            document.getElementById('stickerPanel').classList.toggle('active');
+            document.getElementById('emojiPicker').classList.remove('active');
+        }
+
+        function sendSticker(sticker) {
+            addMessage('own', sticker, formatTime(new Date()), 'delivered');
+            document.getElementById('stickerPanel').classList.remove('active');
+        }
+
+        function createSticker() {
+            showToast('Fitur buat sticker - Upload gambar');
+            document.getElementById('fileInput').click();
+        }
+
+        // Settings & Profile
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function openNotificationSettings() {
+            document.getElementById('notificationModal').classList.add('active');
+        }
+
+        function closeNotificationSettings() {
+            document.getElementById('notificationModal').classList.remove('active');
+        }
+
+        function saveNotificationSettings() {
+            // Save to local storage and server
+            localStorage.setItem('ndiicloud_notifications', JSON.stringify(notificationSettings));
+            showToast('✅ Pengaturan notifikasi disimpan');
+            closeNotificationSettings();
+        }
+
+        function openProfile() {
+            if (currentUser) {
+                document.getElementById('profileNameInput').value = currentUser.name;
+                document.getElementById('profilePhone').textContent = currentUser.phone || '-';
+                document.getElementById('profileEmail').textContent = currentUser.email || '-';
+            }
+            document.getElementById('profileModal').classList.add('active');
+        }
+
+        function closeProfile() {
+            document.getElementById('profileModal').classList.remove('active');
+        }
+
+        function saveProfile() {
+            const newName = document.getElementById('profileNameInput').value;
+            const newBio = document.getElementById('profileBioInput').value;
+            
+            if (currentUser) {
+                currentUser.name = newName;
+                currentUser.bio = newBio;
+                localStorage.setItem('ndiicloud_user', JSON.stringify(currentUser));
+                
+                document.getElementById('userName').textContent = newName;
+                document.getElementById('userAvatar').textContent = newName[0];
+                
+                showToast('✅ Profil diperbarui');
+            }
+            closeProfile();
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            isDarkMode = !isDarkMode;
+            document.getElementById('darkModeToggle').classList.toggle('active');
+            localStorage.setItem('ndiicloud_darkmode', isDarkMode);
+        }
+
+        function checkTheme() {
+            const saved = localStorage.getItem('ndiicloud_darkmode');
+            if (saved === 'true') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeToggle').classList.add('active');
+                isDarkMode = true;
+            }
+        }
+
+        function changeBackground() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    document.getElementById('customBg').src = url;
+                    document.getElementById('customBg').style.display = 'block';
+                    localStorage.setItem('ndiicloud_bg', url);
+                    showToast('✅ Background diubah');
+                }
+            };
+            input.click();
+        }
+
+        // Admin Functions
+        function openAdminDashboard() {
+            if (!isAdmin) {
+                showToast('❌ Akses ditolak');
+                return;
+            }
+            window.open('/admin.html', '_blank');
+        }
+
+        // Utility Functions
+        function handleInput() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (input.value.trim()) {
+                sendBtn.classList.add('visible');
+            } else {
+                sendBtn.classList.remove('visible');
+            }
+            
+            // Auto resize
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+            
+            // Typing indicator
+            if (currentChat) {
+                clearTimeout(typingTimer);
+                socket.emit('typing', { chatId: currentChat.id, isTyping: true });
+                typingTimer = setTimeout(() => {
+                    socket.emit('typing', { chatId: currentChat.id, isTyping: false });
+                }, 3000);
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showBrowserNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body, icon: '/favicon.ico' });
+            }
+        }
+
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('ndiicloud_session');
+            localStorage.removeItem('ndiicloud_user');
+            location.reload();
+        }
+
+        // Initialize notifications
+        requestNotificationPermission();
+    </script>
+</body>
+</html>
