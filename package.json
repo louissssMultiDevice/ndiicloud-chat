@@ -1,37 +1,20 @@
 {
   "name": "ndiicloud-chat",
   "version": "2.0.0",
-  "description": "NdiiClouD Chat dengan WhatsApp Bot Integration",
-  "main": "index.js",
+  "description": "NdiiClouD Chat - Vercel Compatible",
   "scripts": {
-    "start": "node server.js",
-    "bot": "node index.js",
-    "dev": "concurrently \"npm run bot\" \"npm start\""
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "npm:wileys",
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "cors": "^2.8.5",
-    "pino": "^8.14.1",
-    "qrcode-terminal": "^0.12.0",
-    "fs-extra": "^11.1.1",
-    "axios": "^1.4.0",
-    "node-cron": "^3.0.2",
-    "moment-timezone": "^0.5.43",
-    "uuid": "^9.0.0",
-    "body-parser": "^1.20.2",
-    "multer": "^1.4.5-lts.1",
-    "path": "^0.12.7"
+    "@vercel/kv": "^1.0.0",
+    "@vercel/postgres": "^0.5.0",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "vercel": "^32.0.0"
   },
-  "keywords": [
-    "whatsapp-bot",
-    "chat-app",
-    "ndiicloud"
-  ],
-  "author": "NdiiClouD",
-  "license": "MIT"
+  "engines": {
+    "node": "18.x"
+  }
 }
